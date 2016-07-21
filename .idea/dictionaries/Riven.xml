@@ -1,8 +1,14 @@
 <component name="ProjectDictionaryState">
   <dictionary name="Riven">
     <words>
+      <w>endblock</w>
       <w>endfor</w>
       <w>endmacro</w>
+      <w>flasky</w>
+      <w>navbar</w>
+      <w>sqlalchemy</w>
+      <w>sqlite</w>
+      <w>tablename</w>
     </words>
   </dictionary>
 </component>

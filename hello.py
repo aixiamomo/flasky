@@ -1,3 +1,4 @@
+# coding=utf-8
 import os
 from flask import Flask, render_template, session, redirect, url_for
 from flask_script import Manager
