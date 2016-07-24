@@ -5,7 +5,10 @@
       <w>endfor</w>
       <w>endmacro</w>
       <w>flasky</w>
+      <w>gmail</w>
+      <w>googlemail</w>
       <w>navbar</w>
+      <w>smtp</w>
       <w>sqlalchemy</w>
       <w>sqlite</w>
       <w>tablename</w>
