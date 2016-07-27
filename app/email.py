@@ -12,7 +12,7 @@ def send_async_email(app, msg):  # 确保不同线程send时，程序上下文�
 
 
 # 定义发邮件函数
-def send_email(to, subject, template, **kwargs): # 收件人，主题，渲染正文的模板，关键字参数列表
+def send_email(to, subject, template, **kwargs):  # 收件人，主题，渲染正文的模板，关键字参数列表
     app = current_app.get_current_object()
     msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject,
                   sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])  # 主题，寄件人，收件人列表

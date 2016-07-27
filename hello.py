@@ -108,7 +108,7 @@ def index():
         user = User.query.filter_by(username=form.name.data).first()  # 查询数据库中有无表单输入的名字
         if user is None:  # 数据库中没有
             user = User(username=form.name.data)  # 一个对象就是一行
-            db.session.add(user)
+            db.session.add(user)  # 然后添加到数据库的session准备commit
             session['known'] = False
             if app.config['FLASKY_ADMIN']:  # 判断配置环境里有无收件人
                 send_email(app.config['FLASKY_ADMIN'], 'New User',
