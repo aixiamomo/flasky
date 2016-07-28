@@ -18,13 +18,12 @@ def index():
             user = User(username=form.name.data)  # 把前端返回的form里面的name，生成一个User模型的实例（也就是表的一行）
             db.session.add(user)  # 然后添加到数据库的session准备commit
             session['known'] = False  # 然后把flask的session里面的'known'设置为False，表示这个name以前没出现过
-            if current_app.config['FLASK_ADMIN']:  # 判断配置环境里有无收件人
-                send_email(current_app.config['FLASK_ADMIN'], 'New User', 'mail/new_user', user=user)
+            if current_app.config['FLASKY_ADMIN']:  # 判断配置环境里有无收件人
+                send_email(current_app.config['FLASKY_ADMIN'], 'New User', 'mail/new_user', user=user)
         else:
             session['known'] = True  # 表示在数据里查询到了，存在的name,代表以前访问过，known设置为True
         session['name'] = form.name.data
         return redirect(url_for('.index'))  # Post重定向Get
     return render_template('index.html',
                            form=form, name=session.get('name'),
-                           known=session.get('known', False),
-                           current_time=datetime.utcnow())
+                           known=session.get('known', False))
