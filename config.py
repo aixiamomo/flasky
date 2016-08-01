@@ -9,6 +9,7 @@ class Config(object):
     FLASKY_MAIL_SUBJECT_PREFIX = '[FLASKY]'  # 主题前缀
     FLASKY_MAIL_SENDER = 'Flasky Admin qq920534583@gmail.com'  # 发件人
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')  # 收件管理员
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     @staticmethod
     def init_app(app):

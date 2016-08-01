@@ -107,3 +107,5 @@ ENV/
 .ropeproject
 
 /.idea/
+/venv/
+requirements.txt
