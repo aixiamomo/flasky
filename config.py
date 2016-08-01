@@ -7,7 +7,7 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'  # 密钥
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True  # 每次请求结束提交数据改动
     FLASKY_MAIL_SUBJECT_PREFIX = '[FLASKY]'  # 主题前缀
-    FLASKY_MAIL_SENDER = 'Flasky Admin qq920534583@gmail.com'  # 发件人
+    FLASKY_MAIL_SENDER = 'Flasky Admin <920534583@qq.com>'  # 发件人
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')  # 收件管理员
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
@@ -18,7 +18,7 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_SERVER = 'smtp.qq.com'
     MAIL_PORT = 587
     MAIL_USER_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')

@@ -51,9 +51,9 @@ class User(UserMixin, db.Model):
             data = s.loads(token)  # 解码token，
         except:  # 捕获抛出的所有异常
             return False
-        if data.get('confirm') != self.id:  # 检验令牌中的ID与current_user保存的已登录用户匹配
+        if data.get('confirm') != self.id:  # 检验token中的ID与current_user保存的已登录用户匹配
             return False
-        self.confirmed = True  # 检验通过，设为True
+        self.confirmed = True  # 检验通过，设为True,self表示一行
         db.session.add(self)  # 添加到数据库会话
         return True
 
