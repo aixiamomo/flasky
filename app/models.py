@@ -69,7 +69,7 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User {}'.format(self.name)
 
-    @property  # 只写属性
+    @property  # 只写属性.
     def password(self):  # 读取password会报错
         raise AttributeError('password is not a readable attribute')
 
