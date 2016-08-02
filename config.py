@@ -6,10 +6,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))  # 返回当前程序目录
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'  # 密钥
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True  # 每次请求结束提交数据改动
+    MAIL_SERVER = 'smtp.qq.com'
+    MAIL_PORT = 587
+    MAIL_USER_TLS = True
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
     FLASKY_MAIL_SUBJECT_PREFIX = '[FLASKY]'  # 主题前缀
     FLASKY_MAIL_SENDER = 'Flasky Admin <920534583@qq.com>'  # 发件人
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')  # 收件管理员
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     @staticmethod
     def init_app(app):
@@ -18,11 +23,6 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    MAIL_SERVER = 'smtp.qq.com'
-    MAIL_PORT = 587
-    MAIL_USER_TLS = True
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')  # 将多个路径组合后返回
 
