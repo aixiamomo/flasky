@@ -108,5 +108,4 @@ ENV/
 
 /.idea/
 /venv/
-requirements.txt
 *.sqlite
