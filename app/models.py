@@ -25,10 +25,11 @@ class Role(db.Model):
     users = db.relationship('User', backref='role', lazy='dynamic')  # P49 构造关系，返回User模型中，与角色关联的用户组成的列表
 
     def __repr__(self):
-        return '<Role {}'.format(self.name)  # 返回一个可读性的字符串表示模型，测试时候使用
+        """返回一个可读性的字符串表示模型，测试时候使用"""
+        return '<Role {}'.format(self.name)
 
     @staticmethod
-    def insert_roles():
+    def insert_roles():  # 静态方法，用来在数据库中创建角色实例
         roles = {
             'User': (Permission.Follow |
                      Permission.COMMENT |
@@ -40,10 +41,11 @@ class Role(db.Model):
             'Administrator': (0xff, False)
         }  # 角色字典，|按位或，将权限位值组合起来
         for r in roles:
+            print r
             role = Role.query.filter_by(name=r).first()  # 数据库查找有无角色字典里的用户行
             if role is None:
                 role = Role(name=r)  # 新建一行
-            role.permissions = roles[r][0]  #
+            role.permissions = roles[r][0]  # 权限位值
             role.default = roles[r][1]  # 默认角色，这里为User
             db.session.add(role)  # 添加到数据库会话
         db.session.commit()  # 提交
@@ -59,12 +61,13 @@ class User(UserMixin, db.Model):
     confirmed = db.Column(db.Boolean, default=False)
 
     def __init__(self, **kwargs):
-        super(User, self).__init__(**kwargs)  # 调用基类的构造函数
-        if self.role is None:
-            if self.email == current_app.config['FLASKY_ADMIN']:
+        """初始化默认的用户角色"""
+        super(User, self).__init__(**kwargs)  # 调用父类的构造函数
+        if self.role is None:  # 判定用户有没定义角色
+            if self.email == current_app.config['FLASKY_ADMIN']:  # 根据邮箱值定义用户
                 self.role == Role.query.filter_by(permissions=0xff).first()  # 定义管理员
             if self.role is None:
-                self.none = Role.query.filter_by(default=True).first()  # 定义默认用户
+                self.role = Role.query.filter_by(default=True).first()  # 定义默认用户
 
     def __repr__(self):
         return '<User {}'.format(self.name)
@@ -85,6 +88,7 @@ class User(UserMixin, db.Model):
         return s.dumps({'confirm': self.id})  # 为指定的数据生成加密签名，令牌字符串
 
     def confirm(self, token):  # 检验token
+        """确认用户token"""
         s = Serializer(current_app.config['SECRET_KEY'])  # 生成token
         try:
             data = s.loads(token)  # 解码token，
@@ -96,13 +100,25 @@ class User(UserMixin, db.Model):
         db.session.add(self)  # 添加到数据库会话
         return True
 
-    def can(self, permissions):  # 如果角色包含请求的所有权限位，返回True
+    def can(self, permissions):  # 如果角色包含传入参数/（请求）的所有权限位，返回True
+        """检查用户是否有指定的权限"""
         return self.role is not None and \
                (self.role.permissions & permissions) == permissions
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
+
+class AnonymousUser(AnonymousUserMixin):
+    """定义匿名用户类,未登陆用户的current_user"""
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+
+
+login_manager.anonymous_user = AnonymousUser
 
 
 @login_manager.user_loader
