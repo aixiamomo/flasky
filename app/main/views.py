@@ -1,9 +1,11 @@
 # coding=utf-8
 from datetime import datetime
-from flask import render_template, session, redirect, url_for, current_app  # 程序上下文，当前激活程序的实例
+from flask import render_template, session, redirect, \
+    url_for, current_app, abort, flash  # 程序上下文，当前激活程序的实例
+from flask_login import current_user, login_required
 
 from . import main  # 从这一层的__init__.py导入蓝本实例
-from .forms import NameForm  # 从这一层的forms.py导入NameForm
+from .forms import NameForm, EditProfileForm  # 从这一层的forms.py导入NameForm
 from .. import db  # 从上一层的__init__.py导入数据库实例db
 from ..models import User  # 从上一层的models.py导入User数据库对象
 from ..email import send_email
@@ -27,3 +29,30 @@ def index():
     return render_template('index.html',
                            form=form, name=session.get('name'),
                            known=session.get('known', False))
+
+
+@main.route('/user/<username>')
+def user(username):
+    """资料显示页面的路由"""
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        abort(404)
+    return render_template('user.html', user=user)
+
+
+@main.route('/edit-profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    """资料编辑路由"""
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.location = form.location.data
+        current_user.about_me = form.location.data
+        db.session.add(current_user)
+        flash('Your profile has been updated.')
+        return redirect(url_for('.user'), username=current_user.username)
+    form.name.data = current_user.name
+    form.location.data = current_user.location
+    form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', form=form)

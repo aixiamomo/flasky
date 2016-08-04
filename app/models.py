@@ -1,4 +1,6 @@
 # coding=utf-8
+from datetime import datetime
+
 from . import db  # 在当前目录下导入db
 from . import login_manager
 
@@ -41,7 +43,6 @@ class Role(db.Model):
             'Administrator': (0xff, False)
         }  # 角色字典，|按位或，将权限位值组合起来
         for r in roles:
-            print r
             role = Role.query.filter_by(name=r).first()  # 数据库查找有无角色字典里的用户行
             if role is None:
                 role = Role(name=r)  # 新建一行
@@ -59,6 +60,12 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
+
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     def __init__(self, **kwargs):
         """初始化默认的用户角色"""
@@ -108,6 +115,11 @@ class User(UserMixin, db.Model):
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
+    def ping(self):
+        """每次访问网页后，刷新这个值：最后登陆时间"""
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
+
 
 class AnonymousUser(AnonymousUserMixin):
     """定义匿名用户类,未登陆用户的current_user"""
@@ -118,7 +130,7 @@ class AnonymousUser(AnonymousUserMixin):
         return False
 
 
-login_manager.anonymous_user = AnonymousUser
+login_manager.anonymous_user = AnonymousUser  # 把匿名类注册给登陆管理器
 
 
 @login_manager.user_loader

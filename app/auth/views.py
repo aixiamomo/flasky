@@ -12,13 +12,14 @@ from ..email import send_email
 
 
 # 用钩子过滤未确认的用户
-@auth.before_app_request
+@auth.before_app_request  # 每次请求前运行
 def before_request():  # P94，拦截请求
-    if current_user.is_authenticated \
-            and not current_user.confirmed \
-            and request.endpoint[:5] != 'auth.' \
-            and request.endpoint != 'static':  # 用户已登录/用户未确认/请求端点不在蓝本里
-        return redirect(url_for('auth.unconfirmed'))  # 显示一个确认账户相关信息的界面
+    if current_user.is_authenticated:  # 确保用户已登陆
+        current_user.ping()  # 更新登陆时间
+        # if not current_user.confirmed \
+        #         and request.endpoint[:5] != 'auth.' \
+        #         and request.endpoint != 'static':  # 用户已登录/用户未确认/请求端点不在蓝本里
+        #     return redirect(url_for('auth.unconfirmed'))  # 显示一个确认账户相关信息的界面
 
 
 # 显示给未确认用户的页面
