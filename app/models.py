@@ -1,4 +1,5 @@
 # coding=utf-8
+import hashlib
 from datetime import datetime
 
 from . import db  # 在当前目录下导入db
@@ -7,7 +8,7 @@ from . import login_manager
 from werkzeug.security import generate_password_hash, check_password_hash  # 加入密码散列
 from flask_login import UserMixin, AnonymousUserMixin  # 支持用户登陆,检查用户权限
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app, request
 
 
 class Permission(object):  # 程序权限常量：关注、评论、写文章、修改评论、管理网站
@@ -94,6 +95,10 @@ class User(UserMixin, db.Model):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)  # 生成token,有效期一个小时
         return s.dumps({'confirm': self.id})  # 为指定的数据生成加密签名，令牌字符串
 
+    def generate_reset_token(self, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'reset': self.id})
+
     def confirm(self, token):  # 检验token
         """确认用户token"""
         s = Serializer(current_app.config['SECRET_KEY'])  # 生成token
@@ -119,6 +124,15 @@ class User(UserMixin, db.Model):
         """每次访问网页后，刷新这个值：最后登陆时间"""
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
 
 
 class AnonymousUser(AnonymousUserMixin):

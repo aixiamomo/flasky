@@ -5,10 +5,11 @@ from flask import render_template, session, redirect, \
 from flask_login import current_user, login_required
 
 from . import main  # 从这一层的__init__.py导入蓝本实例
-from .forms import NameForm, EditProfileForm  # 从这一层的forms.py导入NameForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm  # 从这一层的forms.py导入NameForm
 from .. import db  # 从上一层的__init__.py导入数据库实例db
-from ..models import User  # 从上一层的models.py导入User数据库对象
+from ..models import User, Role  # 从上一层的models.py导入User数据库对象
 from ..email import send_email
+from ..decorators import admin_required  # 自定义的权限装饰器
 
 
 @main.route('/', methods=['GET', 'POST'])
@@ -56,3 +57,31 @@ def edit_profile():
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', form=form)
+
+
+@main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_profile_admin(id):
+    """管理员的资料编辑路由"""
+    user = User.query.get_or_404(id)  # 返回指定主键对应的行，如果没有，返回404错误
+    form = EditProfileAdminForm(user=user)
+    if form.validate_on_submit():
+        user.email = form.email.data
+        user.username = form.username.data
+        user.confirmed = form.confirmed.data
+        user.role = Role.query.get(form.role.data)  # p102
+        user.name = form.name.data
+        user.location = form.location.data
+        user.about_me = form.about_me.data
+        db.session.add(user)
+        flash('The profile has been updated.')
+        return redirect(url_for('.user', username=user.username))
+    form.email.data = user.email
+    form.username.data = user.username
+    form.confirmed = user.confirmed
+    form.role.data = user.role_id
+    form.name = user.name
+    form.location = user.location
+    form.about_me.data = user.about_me
+    return render_template('edit_profile.html', form=form, user=user)
