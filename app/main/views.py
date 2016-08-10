@@ -1,7 +1,7 @@
 # coding=utf-8
 from datetime import datetime
 from flask import render_template, session, redirect, \
-    url_for, current_app, abort, flash  # 程序上下文，当前激活程序的实例
+    url_for, current_app, abort, flash, request  # 程序上下文，当前激活程序的实例
 from flask_login import current_user, login_required
 
 from . import main  # 从这一层的__init__.py导入蓝本实例
@@ -35,24 +35,34 @@ from ..decorators import admin_required  # 自定义的权限装饰器
 @main.route('/', methods=['GET', 'POST'])
 def index():
     """处理博客文章的首页路由"""
-    form = PostForm
+    form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and \
             form.validate_on_submit():
         post = Post(body=form.body.data,
                     author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()  # desc()降序
-    return render_template('index.html', form=form, posts=posts)
+    page = request.args.get('page', 1, type=int)  # 请求的页数，默认是1
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
+        error_out=False
+    )
+    posts = pagination.items  # 当前分页中的方法
+    return render_template('index.html', form=form, posts=posts,
+                           pagination=pagination)
 
 
 @main.route('/user/<username>')
 def user(username):
     """资料显示页面的路由"""
-    user = User.query.filter_by(username=username).first()
-    if user is None:
-        abort(404)
-    return render_template('user.html', user=user)
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    pagination = user.posts.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
+        error_out=False)
+    posts = pagination.items
+    return render_template('user.html', user=user, posts=posts,
+                           pagination=pagination)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])

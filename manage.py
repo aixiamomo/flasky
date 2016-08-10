@@ -6,7 +6,7 @@ from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 
 from app import create_app, db  # 导入工厂函数和数据库实例
-from app.models import User, Role  # 导入User,Role模型
+from app.models import User, Role, Permission, Post  # 导入User,Role模型
 
 
 # 如果定义了环境变量，则从中读取配置名，否则使用默认配置
@@ -17,7 +17,7 @@ migrate = Migrate(app, db)
 
 # 定义一个回调函数
 def make_shell_context():
-    return dict(app=app, db=db, User=User, Role=Role)  # 生成一个字典
+    return dict(app=app, db=db, User=User, Role=Role, Permission=Permission, Post=Post)  # 生成一个字典
 manager.add_command("shell", Shell(make_context=make_shell_context))  # 为shell添加一个上下文
 manager.add_command('db', MigrateCommand)  # 添加数据库迁移命令，附加到manager上
 
