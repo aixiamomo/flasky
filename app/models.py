@@ -1,6 +1,8 @@
 # coding=utf-8
 import hashlib
+import bleach
 from datetime import datetime
+from markdown import markdown
 
 from . import db  # 在当前目录下导入db
 from . import login_manager
@@ -24,6 +26,7 @@ class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
@@ -41,6 +44,18 @@ class Post(db.Model):
                      author=u)
             db.session.add(p)
             db.session.commit()
+
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        """把body字段中的文本渲染成HTML格式，保存在body_html"""
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p']  # 白名单
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
+
+db.event.listen(Post.body, 'set', Post.on_changed_body)  # 事件监听：只要body设置了新值，函数就会被调用
 
 
 class Role(db.Model):

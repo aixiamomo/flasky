@@ -5,6 +5,7 @@ from flask_mail import Mail
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_pagedown import PageDown
 
 from config import config
 
@@ -14,6 +15,7 @@ bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
 db = SQLAlchemy()
+pagedown = PageDown()
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'  # 不同属性表示不同安全等级。
 login_manager.login_view = 'auth.login'  # login_view属性设置登录页面的端点
@@ -31,6 +33,7 @@ def create_app(config_name):  # 参数为config.py里字典的key
     moment.init_app(app)
     db.init_app(app)
     login_manager.init_app(app)
+    pagedown.init_app(app)
 
     # 附加路由和自定义的错误页面
     from .main import main as main_blueprint  # 从当前目录下的main目录下的__init__导入蓝本实例并重命名
