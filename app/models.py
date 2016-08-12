@@ -53,7 +53,7 @@ class Post(db.Model):
                         'h1', 'h2', 'h3', 'p']  # 白名单
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
-            tags=allowed_tags, strip=True))
+            tags=allowed_tags, strip=True))  # 真实的转换过程
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)  # 事件监听：只要body设置了新值，函数就会被调用
 
@@ -92,6 +92,14 @@ class Role(db.Model):
         db.session.commit()  # 提交
 
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    """关注关联表的模型"""
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -108,6 +116,17 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')  # 返回的是一个查询对象
+
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.followed_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')  # 你关注的人
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.follower_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')  # 关注你的人
 
     @staticmethod
     def generate_fake(count=100):
@@ -216,7 +235,7 @@ class User(UserMixin, db.Model):
     def can(self, permissions):  # 如果角色包含传入参数/（请求）的所有权限位，返回True
         """检查用户是否有指定的权限"""
         return self.role is not None and \
-               (self.role.permissions & permissions) == permissions
+            (self.role.permissions & permissions) == permissions
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
@@ -234,6 +253,22 @@ class User(UserMixin, db.Model):
         hash = self.avatar_hash or hashlib.md5(self.email.encode('utf-8')).hexdigest()
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url=url, hash=hash, size=size, default=default, rating=rating)
+
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
 
 
 class AnonymousUser(AnonymousUserMixin):
