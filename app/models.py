@@ -14,7 +14,7 @@ from flask import current_app, request
 
 
 class Permission(object):  # 程序权限常量：关注、评论、写文章、修改评论、管理网站
-    Follow = 0x01
+    FOLLOW = 0x01
     COMMENT = 0x02
     WRITE_ARTICLES = 0x04
     MODERATE_COMMENTS = 0x08
@@ -73,10 +73,10 @@ class Role(db.Model):
     @staticmethod
     def insert_roles():  # 静态方法，用来在数据库中创建角色实例
         roles = {
-            'User': (Permission.Follow |
+            'User': (Permission.FOLLOW |
                      Permission.COMMENT |
                      Permission.WRITE_ARTICLES, True),
-            'Moderator': (Permission.Follow |
+            'Moderator': (Permission.FOLLOW |
                           Permission.COMMENT |
                           Permission.WRITE_ARTICLES |
                           Permission.MODERATE_COMMENTS, False),
@@ -94,9 +94,9 @@ class Role(db.Model):
 
 class Follow(db.Model):
     __tablename__ = 'follows'
-    """关注关联表的模型"""
-    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    """关注关联表的模型，每一行都表示一个用户关注了另一个用户"""
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # 关注者
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # 你关注的人
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -118,15 +118,15 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')  # 返回的是一个查询对象
 
     followed = db.relationship('Follow',
-                               foreign_keys=[Follow.followed_id],
-                               backref=db.backref('follower', lazy='joined'),
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),  # 回引Follow模型
                                lazy='dynamic',
                                cascade='all, delete-orphan')  # 你关注的人
     followers = db.relationship('Follow',
-                                foreign_keys=[Follow.follower_id],
+                                foreign_keys=[Follow.followed_id],
                                 backref=db.backref('followed', lazy='joined'),
                                 lazy='dynamic',
-                                cascade='all, delete-orphan')  # 关注你的人
+                                cascade='all, delete-orphan')  # 关注你的人,粉丝
 
     @staticmethod
     def generate_fake(count=100):
@@ -150,6 +150,15 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()  # 如果数据重复，那么回滚数据库会话，不写入重复的数据
 
+    @staticmethod
+    def add_self_follows():
+        """把用户设为自己的关注者"""
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
+
     def __init__(self, **kwargs):
         """初始化默认的用户角色"""
         super(User, self).__init__(**kwargs)  # 调用父类的构造函数
@@ -162,12 +171,20 @@ class User(UserMixin, db.Model):
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
 
+        self.follow(self)  # 把自己设为自己的关注者
+
     def __repr__(self):
         return '<User {}'.format(self.name)
 
     @property  # 只写属性.
     def password(self):  # 读取password会报错
         raise AttributeError('password is not a readable attribute')
+
+    @property  # 定义为属性，调用时无需()
+    def followed_posts(self):
+        """关注用户的文章"""
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
+            .filter(Follow.follower_id == self.id)
 
     @password.setter  # 设定值
     def password(self, password):

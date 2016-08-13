@@ -1,7 +1,7 @@
 # coding=utf-8
 from datetime import datetime
 from flask import render_template, session, redirect, \
-    url_for, current_app, abort, flash, request  # 程序上下文，当前激活程序的实例
+    url_for, current_app, abort, flash, request, make_response  # 程序上下文，当前激活程序的实例
 from flask_login import current_user, login_required
 
 from . import main  # 从这一层的__init__.py导入蓝本实例
@@ -43,13 +43,19 @@ def index():
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)  # 请求的页数，默认是1
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+    show_followed = False
+    if current_user.is_authenticated:
+        show_followed = bool(request.cookies.get('show_followed', ''))
+    if show_followed:
+        query = current_user.followed_posts
+    else:
+        query = Post.query
+    pagination = query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
-        error_out=False
-    )
+        error_out=False)
     posts = pagination.items  # 当前分页中的方法
     return render_template('index.html', form=form, posts=posts,
-                           pagination=pagination)
+                           pagination=pagination, show_followed=show_followed)
 
 
 @main.route('/user/<username>')
@@ -139,7 +145,7 @@ def edit(id):
 
 @main.route('/follow/<username>')
 @login_required
-@permission_required(Permission.Follow)
+@permission_required(Permission.FOLLOW)
 def follow(username):
     """关注路由"""
     user = User.query.filter_by(username=username).first()
@@ -156,7 +162,7 @@ def follow(username):
 
 @main.route('/unfollow/<username>')
 @login_required
-@permission_required(Permission.Follow)
+@permission_required(Permission.FOLLOW)
 def unfollow(username):
     """取消关注"""
     user = User.query.filter_by(username=username).first()
@@ -173,6 +179,7 @@ def unfollow(username):
 
 @main.route('/followers/<username>')
 def followers(username):
+    """粉丝"""
     user = User.query.filter_by(username=username).first()
     if user is None:
         flash('Invalid user.')
@@ -190,6 +197,7 @@ def followers(username):
 
 @main.route('/followed-by/<username>')
 def followed_by(username):
+    """关注的人"""
     user = User.query.filter_by(username=username).first()
     if user is None:
         flash('Invalid user.')
@@ -205,3 +213,17 @@ def followed_by(username):
                            follows=follows)
 
 
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
+    return resp
