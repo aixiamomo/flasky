@@ -57,3 +57,9 @@ class PostForm(Form):
     """博客文章表单"""
     body = PageDownField("What's on your mind?", validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+
+class CommentForm(Form):
+    """提交评论表单"""
+    body = StringField('Enter your comment', validators=[DataRequired()])
+    submit = SubmitField('Submit')

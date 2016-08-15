@@ -2,7 +2,7 @@
 # coding=utf-8
 import os
 
-from flask_script import Manager, Shell
+from flask_script import Manager, Shell, Server
 from flask_migrate import Migrate, MigrateCommand
 
 from app import create_app, db  # 导入工厂函数和数据库实例
@@ -21,6 +21,7 @@ def make_shell_context():
                 Permission=Permission, Post=Post, Follow=Follow)  # 生成一个字典
 manager.add_command("shell", Shell(make_context=make_shell_context))  # 为shell添加一个上下文
 manager.add_command('db', MigrateCommand)  # 添加数据库迁移命令，附加到manager上
+manager.add_command('runserver', Server('127.0.0.1', port='2000'))
 
 
 # 启用单元测试的命令

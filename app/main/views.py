@@ -5,9 +5,10 @@ from flask import render_template, session, redirect, \
 from flask_login import current_user, login_required
 
 from . import main  # 从这一层的__init__.py导入蓝本实例
-from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostForm  # 从这一层的forms.py导入NameForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm, \
+    PostForm, CommentForm  # 从这一层的forms.py导入NameForm
 from .. import db  # 从上一层的__init__.py导入数据库实例db
-from ..models import User, Role, Post, Permission  # 从上一层的models.py导入User数据库对象
+from ..models import User, Role, Post, Permission, Comment  # 从上一层的models.py导入User数据库对象
 from ..email import send_email
 from ..decorators import admin_required, permission_required  # 自定义的权限装饰器
 
@@ -117,11 +118,27 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html', form=form, user=user)
 
 
-@main.route('/post/<int:id>')
+@main.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     """文章的固定链接"""
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())
+        db.session.add(comment)
+        flash('Your comment has been published.')
+        return redirect(url_for('.post', id=post.id, page=-1))  # 请求评论的最后一页
+    page = request.args.get('page', 1, type=int)
+    if page == -1:
+        page = (post.comments.count() - 1) // \
+            current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'], error_out=False)
+    comments = pagination.items  # list:当前分页中的记录
+    return render_template('post.html', posts=[post], form=form,
+                           comments=comments, pagination=pagination)
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -138,7 +155,7 @@ def edit(id):
 
         db.session.add(post)
         flash('The post has been updated.')
-        return redirect(url_for('post', id=post.id))
+        return redirect(url_for('.post', id=post.id))
     form.body.data = post.body
     return render_template('edit_post.html', form=form)
 
@@ -217,7 +234,7 @@ def followed_by(username):
 @login_required
 def show_all():
     resp = make_response(redirect(url_for('.index')))
-    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    resp.set_cookie('show_followed', '', max_age=30 * 24 * 60 * 60)
     return resp
 
 
@@ -225,5 +242,5 @@ def show_all():
 @login_required
 def show_followed():
     resp = make_response(redirect(url_for('.index')))
-    resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
+    resp.set_cookie('show_followed', '1', max_age=30 * 24 * 60 * 60)
     return resp
