@@ -140,7 +140,7 @@ class User(UserMixin, db.Model):
         seed()
         for i in range(count):
             u = User(email=forgery_py.internet.email_address(),
-                     username=forgery_py.internet.user_name(),
+                     username=forgery_py.internet.user_name(True),
                      password=forgery_py.lorem_ipsum.word(),
                      confirmed=True,
                      name=forgery_py.name.full_name(),
@@ -166,8 +166,8 @@ class User(UserMixin, db.Model):
         """初始化默认的用户角色"""
         super(User, self).__init__(**kwargs)  # 调用父类的构造函数
         if self.role is None:  # 判定用户有没定义角色
-            if self.email == current_app.config['FLASKY_ADMIN']:  # 根据邮箱值定义用户
-                self.role == Role.query.filter_by(permissions=0xff).first()  # 定义管理员
+            if self.username == 'aixia':  # 根据用户名定义用户
+                self.role = Role.query.filter_by(permissions=0xff).first()  # 定义管理员
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()  # 定义默认用户
 
