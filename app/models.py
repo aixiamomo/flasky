@@ -327,4 +327,5 @@ login_manager.anonymous_user = AnonymousUser  # 把匿名类注册给登陆管�
 
 @login_manager.user_loader
 def load_user(user_id):
+    """从session中重新载入用户的回调函数"""
     return User.query.get(int(user_id))
