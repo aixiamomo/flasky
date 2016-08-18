@@ -20,3 +20,6 @@ def unauthorized(message):
     response = jsonify({'error': 'unauthorized', 'message': message})
     response.status_code = 401
     return response
+
+
+"""生成各种状态码的辅助函数，供视图函数调用"""
