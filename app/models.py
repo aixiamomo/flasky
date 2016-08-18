@@ -196,8 +196,8 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):  # 与存储在User模型中的密码散列值对比
         return check_password_hash(self.password_hash, password)
 
-    def generate_confirmation_token(self, expiration=3600):
-        s = Serializer(current_app.config['SECRET_KEY'], expiration)  # 生成token,有效期一个小时
+    def generate_confirmation_token(self, expiration=3600):  # p91
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)  # 生成token，两个参数：密钥，过期时间
         return s.dumps({'confirm': self.id})  # 为指定的数据生成加密签名，令牌字符串
 
     def generate_reset_token(self, expiration=3600):
@@ -289,6 +289,20 @@ class User(UserMixin, db.Model):
 
     def is_followed_by(self, user):
         return self.followers.filter_by(follower_id=user.id).first() is not None
+
+    def generate_auth_token(self, expiration):
+        """生成令牌"""
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)  # P91
+        return s.dumps({'id': self.id})  # 使用编码后的id字段生成json格式的token
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)  # 解码成python的字典
+        except:
+            return None
+        return User.query.get(data['id'])
 
 
 class Comment(db.Model):
