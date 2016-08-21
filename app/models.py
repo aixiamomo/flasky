@@ -4,13 +4,12 @@ import bleach
 from datetime import datetime
 from markdown import markdown
 
-from . import db  # 在当前目录下导入db
-from . import login_manager
+from . import db, login_manager  # 在当前目录下导入db
 
 from werkzeug.security import generate_password_hash, check_password_hash  # 加入密码散列
 from flask_login import UserMixin, AnonymousUserMixin  # 支持用户登陆,检查用户权限
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app, request
+from flask import current_app, request, url_for
 
 
 class Permission(object):  # 程序权限常量：关注、评论、写文章、修改评论、管理网站
@@ -55,6 +54,19 @@ class Post(db.Model):
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))  # 真实的转换过程
+
+    def to_json(self):
+        """把文章转换成json格式的序列化字典"""
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
+            'comments': url_for('api.get_post_comments', id=self.id, _external=True),
+            'comment_count': self.comments.count()
+        }
+        return json_post
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)  # 事件监听：只要body设置了新值，函数就会被调用
@@ -303,6 +315,20 @@ class User(UserMixin, db.Model):
         except:
             return None
         return User.query.get(data['id'])
+
+    def to_json(self):
+        """把用户转换成json格式的序列化字典"""
+        json_user = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts',
+                                      id=self.id, _external=True),
+            'post_count': self.posts.count()
+        }
+        return json_user
 
 
 class Comment(db.Model):
