@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash  # 加
 from flask_login import UserMixin, AnonymousUserMixin  # 支持用户登陆,检查用户权限
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app, request, url_for
+from app.exceptions import ValidationError
 
 
 class Permission(object):  # 程序权限常量：关注、评论、写文章、修改评论、管理网站
@@ -54,6 +55,14 @@ class Post(db.Model):
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))  # 真实的转换过程
+
+    @staticmethod
+    def from_json(json_post):
+        """从json格式数据创建一篇post文章"""
+        body = json_post.get('body')
+        if body is None or body == '':
+            raise ValidationError('post does not have a body')
+        return Post(body=body)
 
     def to_json(self):
         """把文章转换成json格式的序列化字典"""
